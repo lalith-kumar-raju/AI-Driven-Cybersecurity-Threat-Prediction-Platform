@@ -35,8 +35,51 @@ except ImportError:
     PLOTLY_AVAILABLE = False
     print("Warning: Plotly not available. Install with: pip install plotly")
 
-from live_capture import PacketCaptureManager
-from inference import RealTimeInferenceEngine
+# Conditional imports for optional modules
+try:
+    from live_capture import PacketCaptureManager
+except ImportError:
+    # Stub for when live_capture is not available
+    class PacketCaptureManager:
+        def __init__(self):
+            self.captures = {}
+        def start_capture(self, interface=None, callback=None):
+            raise RuntimeError("Live capture not available on this deployment")
+        def stop_all_captures(self):
+            self.captures = {}
+        def get_capture_stats(self, interface=None):
+            return {}
+        def get_available_interfaces(self):
+            return []
+
+try:
+    from inference import RealTimeInferenceEngine
+except ImportError:
+    # Stub for when inference is not available
+    class RealTimeInferenceEngine:
+        def __init__(self, *args, **kwargs):
+            pass
+        def start(self):
+            pass
+        def stop(self):
+            pass
+        def process_packet(self, packet):
+            return None
+        def process_pcap(self, pcap_path):
+            return {
+                'file': pcap_path, 
+                'total_packets': 0, 
+                'processed': 0, 
+                'threats': 0, 
+                'anomalies': 0, 
+                'predictions': []
+            }
+        def get_stats(self):
+            return {
+                'total_predictions': 0, 
+                'threats_detected': 0, 
+                'anomalies_detected': 0
+            }
 
 class DashboardData:
     """Manage dashboard data and statistics"""
@@ -1039,3 +1082,29 @@ def test_dashboard():
 
 if __name__ == "__main__":
     test_dashboard()
+
+# Create module-level Flask app for Gunicorn
+import os
+try:
+    # Create dashboard instance
+    dashboard = LiveDetectionDashboard(
+        host=os.environ.get('DASHBOARD_HOST', '0.0.0.0'),
+        port=int(os.environ.get('DASHBOARD_PORT', '5000'))
+    )
+    app = dashboard.app
+except Exception as e:
+    # Fallback: create minimal Flask app
+    from flask import Flask
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def index():
+        return "IDS Dashboard - Live capture and inference modules not available in this deployment"
+    
+    @app.route('/api/data')
+    def get_data():
+        return {"error": "Live capture not available"}
+    
+    @app.route('/api/charts')
+    def get_charts():
+        return {"error": "Live capture not available"}
