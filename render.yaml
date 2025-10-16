@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ids-dashboard
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn -k eventlet -w 1 src.dashboard:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DASHBOARD_HOST
+        value: 0.0.0.0
+      - key: DASHBOARD_PORT
+        value: $PORT
+      - key: ENABLE_LIVE_CAPTURE
+        value: "false"
