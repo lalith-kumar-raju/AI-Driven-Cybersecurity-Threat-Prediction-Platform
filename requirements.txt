@@ -112,8 +112,5 @@ pympler>=0.9
 click>=8.1.0
 typer>=0.9.0
 
-# Optional packages (install separately if needed):
-# - CUDA toolkit (for GPU support)
-# - Npcap (for Windows packet capture)
-# - NVIDIA drivers (for GPU support)
-# - nvidia-ml-py3 (for GPU monitoring)
+gunicorn
+eventlet
