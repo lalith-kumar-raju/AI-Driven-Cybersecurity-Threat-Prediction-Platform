@@ -1088,26 +1088,83 @@ if __name__ == "__main__":
 
 # Create module-level Flask app for Gunicorn
 import os
-try:
-    # Create dashboard instance
-    dashboard = LiveDetectionDashboard(
-        host=os.environ.get('DASHBOARD_HOST', '0.0.0.0'),
-        port=int(os.environ.get('DASHBOARD_PORT', '5000'))
-    )
-    app = dashboard.app
-except Exception as e:
+
+# Create a web-only dashboard that shows the full interface
+if FLASK_AVAILABLE:
+    from flask import Flask, render_template, jsonify
+    from flask_socketio import SocketIO
+    
+    app = Flask(__name__, template_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates'))
+    app.config['SECRET_KEY'] = 'ids_dashboard_secret_key'
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+    
+    @app.route('/')
+    def index():
+        return render_template('index.html')
+    
+    @app.route('/api/data')
+    def get_data():
+        return jsonify({
+            'packet_stats': {'total_captured': 0, 'total_processed': 0},
+            'threat_stats': {'total_threats': 0, 'total_anomalies': 0},
+            'system_status': {'capture_running': False, 'inference_running': False},
+            'interfaces': [],
+            'recent_events': [],
+            'recent_threats': [],
+            'recent_anomalies': []
+        })
+    
+    @app.route('/api/charts')
+    def get_charts():
+        return jsonify({
+            'packet_timeline': {'timestamps': [], 'captured': [], 'processed': []},
+            'threat_timeline': {'timestamps': [], 'threats': [], 'anomalies': []},
+            'classification_distribution': {},
+            'threat_distribution': {}
+        })
+    
+    @app.route('/api/interfaces')
+    def get_interfaces():
+        return jsonify([])
+    
+    @app.route('/api/start_capture', methods=['POST'])
+    def start_capture():
+        return jsonify({'success': False, 'message': 'Live capture not available in web-only deployment'})
+    
+    @app.route('/api/stop_capture', methods=['POST'])
+    def stop_capture():
+        return jsonify({'success': False, 'message': 'Live capture not available in web-only deployment'})
+    
+    @app.route('/api/upload_pcap', methods=['POST'])
+    def upload_pcap():
+        return jsonify({'success': False, 'message': 'PCAP processing not available in web-only deployment'})
+    
+    @socketio.on('connect')
+    def handle_connect():
+        emit('status', {'message': 'Connected to web-only dashboard (live features disabled)'})
+        emit('interfaces_loaded', [])
+    
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        pass
+    
+    @socketio.on('get_interfaces')
+    def handle_get_interfaces():
+        emit('interfaces_loaded', [])
+        
+else:
     # Fallback: create minimal Flask app
     from flask import Flask
     app = Flask(__name__)
     
     @app.route('/')
     def index():
-        return "IDS Dashboard - Live capture and inference modules not available in this deployment"
+        return "IDS Dashboard - Flask not available"
     
     @app.route('/api/data')
     def get_data():
-        return {"error": "Live capture not available"}
+        return {"error": "Flask not available"}
     
     @app.route('/api/charts')
     def get_charts():
-        return {"error": "Live capture not available"}
+        return {"error": "Flask not available"}
