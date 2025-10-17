@@ -3,6 +3,9 @@ Real-time Dashboard for Live Intrusion Detection System
 Provides web-based monitoring of packet capture and threat detection
 """
 
+import eventlet
+eventlet.monkey_patch()
+
 import time
 import threading
 import json
